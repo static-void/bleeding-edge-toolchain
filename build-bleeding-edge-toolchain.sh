@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # shellcheck disable=SC2030,SC2031
 
 #
