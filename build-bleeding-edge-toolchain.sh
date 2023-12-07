@@ -806,6 +806,86 @@ extract() {
 extract "${binutilsArchive}"
 extract "${expatArchive}"
 extract "${gccArchive}"
+if [ ! -f "${gcc}_patched" ]; then
+	messageB "Patching ${gcc}"
+	pushd "${gcc}"
+patch -p1 << 'EOF'
+From 4a12dba61892146e757de2cfe8646279ea67bee7 Mon Sep 17 00:00:00 2001
+From: Ed Robbins <ed.robbins@stpgroup.no>
+Date: Tue, 5 Dec 2023 16:56:36 +0000
+Subject: [PATCH] Define CLEAR_INSN_CACHE in arm.h and implement for v7e-m
+ targets
+
+---
+ gcc/config/arm/arm.h | 49 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 49 insertions(+)
+
+diff --git a/gcc/config/arm/arm.h b/gcc/config/arm/arm.h
+index f479540812a..24756f5aef4 100644
+--- a/gcc/config/arm/arm.h
++++ b/gcc/config/arm/arm.h
+@@ -2518,4 +2518,53 @@ const char *arm_be8_option (int argc, const char **argv);
+    representation for SHF_ARM_PURECODE in GCC.  */
+ #define SECTION_ARM_PURECODE SECTION_MACH_DEP
+
++#ifndef CLEAR_INSN_CACHE
++/* When defined CLEAR_INSN_CACHE is called by __clear_cache in libgcc/libgcc2.c
++   It needs to always be _defined_, otherwise maybe_emit_call_builtin___clear_cache
++   from gcc/builtins.cc will not generate a call to __clear_cache, however we
++   only want it _implemented_ for the multilib version of libgcc.a built for
++   v7em targets with double precision FPU (we assume those also have caches). */
++#if defined(__ARM_ARCH_7EM__) && __ARM_FP == 14
++#define CLEAR_INSN_CACHE(BEG, END) \
++  { \
++    const void *scb_base = (const void*)0xe000ed00; \
++    \
++    /* Return if not cortex m7 */ \
++    /*const unsigned scb_cpuid_offset = 0xd00; \
++    const unsigned cpuid_partno_cortex_m7 = 0xc27; \
++    unsigned cpuid = *(unsigned*)(scb_base + scb_cpuid_offset); \
++    if ((cpuid >> 4) & 0xfff != cortex_m7_partno) return; */ \
++    \
++    /* Return if has no cache */ \
++    /*const unsigned scb_clidr_offset = 0xd78; \
++    unsigned clidr = *(unsigned*)(scb_base + scb_clidr_offset); \
++    if (!(clidr & (1 << 27)) return; */ \
++    \
++	/* Make address aligned to cache line size */ \
++    const unsigned cache_line_size = 32; \
++    void *addr = (void*)((unsigned)BEG & ~(cache_line_size - 1)); \
++	\
++	/* Clean data cache */ \
++    const unsigned scb_dccmvac_offset = 0x268; \
++    __asm__ __volatile__("dsb" : : : "memory"); \
++    while (addr < END) { \
++      *(unsigned**)(scb_base + scb_dccmvac_offset) = addr; \
++      addr += cache_line_size; \
++    } \
++    __asm__ __volatile__("dsb; isb" : : : "memory"); \
++    \
++	/* Invalidate instruction cache */ \
++    const unsigned scb_icimvau_offset = 0x258; \
++    addr = (void*)((unsigned)BEG & ~(cache_line_size - 1)); \
++    while (addr < END) { \
++      *(unsigned**)(scb_base + scb_icimvau_offset) = addr; \
++      addr += cache_line_size; \
++    } \
++    __asm__ __volatile__("dsb; isb" : : : "memory"); \
++  }
++#else
++#define CLEAR_INSN_CACHE(BEG, END) ;
++#endif
++#endif
++
+ #endif /* ! GCC_ARM_H */
+--
+2.34.1
+
+EOF
+	popd
+	touch "${gcc}_patched"
+fi
+
 if [ "${skipGdb}" = "n" ]; then
 	extract "${gdbArchive}"
 
