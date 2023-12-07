@@ -657,7 +657,8 @@ buildGdb() {
 			--with-mpfr=yes \
 			--with-libmpfr-prefix=\"${top}/${buildFolder}/${prerequisites}/${mpfr}\" \
 			--with-gdb-datadir=\"'\\\${prefix}'/${target}/share/gdb\" \
-			--with-pkgversion=\"${pkgversion}\""
+			--with-pkgversion=\"${pkgversion}\" \
+			--with-python=\"/usr/bin/python3\""
 		messageB "${bannerPrefix}${gdb} make"
 		make "-j${nproc}"
 		messageB "${bannerPrefix}${gdb} make install"
