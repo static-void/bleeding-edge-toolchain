@@ -541,7 +541,7 @@ buildGccFinal() {
 			--prefix=\"${top}/${installFolder}\" \
 			--docdir=\"${top}/${installFolder}/share/doc\" \
 			--libexecdir=\"${top}/${installFolder}/lib\" \
-			--enable-languages=c,c++ \
+			--enable-languages=c,d,c++ \
 			--disable-libstdcxx-verbose \
 			--enable-plugins \
 			--disable-decimal-float \
